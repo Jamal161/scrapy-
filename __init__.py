@@ -1,42 +1,32 @@
 """
-Scrapy - a web crawling and web scraping framework written for Python
+tests: this package contains all Scrapy unittests
+
+see https://docs.scrapy.org/en/latest/contributing.html#running-tests
 """
 
-import pkgutil
-import sys
-import warnings
+import os
 
-from twisted import version as _txv
+# ignore system-wide proxies for tests
+# which would send requests to a totally unsuspecting server
+# (e.g. because urllib does not fully understand the proxy spec)
+os.environ['http_proxy'] = ''
+os.environ['https_proxy'] = ''
+os.environ['ftp_proxy'] = ''
 
-# Declare top-level shortcuts
-from scrapy.spiders import Spider
-from scrapy.http import Request, FormRequest
-from scrapy.selector import Selector
-from scrapy.item import Item, Field
+# Absolutize paths to coverage config and output file because tests that
+# spawn subprocesses also changes current working directory.
+_sourceroot = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if 'COV_CORE_CONFIG' in os.environ:
+    os.environ['COVERAGE_FILE'] = os.path.join(_sourceroot, '.coverage')
+    os.environ['COV_CORE_CONFIG'] = os.path.join(_sourceroot,
+                                                 os.environ['COV_CORE_CONFIG'])
 
-
-__all__ = [
-    '__version__', 'version_info', 'twisted_version', 'Spider',
-    'Request', 'FormRequest', 'Selector', 'Item', 'Field',
-]
-
-
-# Scrapy and Twisted versions
-__version__ = pkgutil.get_data(__package__, 'VERSION').decode('ascii').strip()
-version_info = tuple(int(v) if v.isdigit() else v for v in __version__.split('.'))
-twisted_version = (_txv.major, _txv.minor, _txv.micro)
+tests_datadir = os.path.join(os.path.abspath(os.path.dirname(__file__)),
+                             'sample_data')
 
 
-# Check minimum required Python version
-if sys.version_info < (3, 6):
-    print("Scrapy %s requires Python 3.6+" % __version__)
-    sys.exit(1)
-
-
-# Ignore noisy twisted deprecation warnings
-warnings.filterwarnings('ignore', category=DeprecationWarning, module='twisted')
-
-
-del pkgutil
-del sys
-del warnings
+def get_testdata(*paths):
+    """Return test data"""
+    path = os.path.join(tests_datadir, *paths)
+    with open(path, 'rb') as f:
+        return f.read()
